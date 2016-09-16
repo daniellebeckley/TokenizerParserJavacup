@@ -1,0 +1,10 @@
+READ ME: Will parse subset of C language according to Technical Specificiations.
+
+To compile
+	- set class path: setenv CLASSPATH :/class/cse756/jflex:/class/cse756/javacup
+
+
+java JFlex.Main simpleC.flex
+java java_cup.Main -interface < simpleC.cup
+javac MyLexer.java
+java MyLexer 1d-jacobi.c

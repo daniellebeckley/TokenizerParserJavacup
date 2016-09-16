@@ -1,0 +1,294 @@
+/* Danielle Beckley */
+
+import java.util.*;
+import java_cup.runtime.*;
+
+
+parser code  {: 
+  public void report_error(String message, Object info) {
+    StringBuffer m = new StringBuffer("Error ");
+
+    if (info instanceof java_cup.runtime.Symbol) 
+      m.append( "("+info.toString()+")" );    
+      
+    m.append(" : "+message);
+   
+    System.out.println(m);
+  }
+   
+  public void report_fatal_error(String message, Object info) {
+    report_error(message, info);
+    throw new RuntimeException("Fatal Syntax Error");
+  }
+
+/* Create a int lit to string function */
+  public String ILToString(Object i){
+	if(i instanceof Long){
+		return i.toString().concat("L");
+	}else{
+		return i.toString();
+	}
+  }
+/* Create a float lit to string function */
+  public String FPLToString(Object fL){
+	if(fL instanceof Long){
+		return fL.toString().concat("F");
+	}else{
+		return fL.toString();
+	}
+
+  }
+
+:};
+
+/*---------Declaration of Terminals and Non Terminals------- */ 
+
+/* Identifiers */
+terminal VOID, DOUBLE,FLOAT, LONG, INT; 
+
+/* Keywords */
+terminal AUTO, BREAK, CASE, CHAR, CONST, CONTINUE, DEFAULT, DO, ELSE, ENUM, EXTERN, FOR, GOTO, IF, INLINE, REGISTER, RESTRICT, RETURN, SHORT, SIGNED, SIZEOF, STATIC, STRUCT, SWITCH, TYPEDEF, UNION, UNSIGNED, VOLATILE, WHILE, _BOOL, _COMPLEX, _IMAGINARY;
+
+/* Assignment Operators */
+terminal ASSGN, STARASSGN, DIVASSGN, PERCENTASSGN, ADDASSGN, MINUSASSGN, LESSASSGN, GREATERASSGN, ANDASSGN, CARETASSGN, ORASSGN;
+
+/* Increment/Decrement */
+terminal PLUSPLUS, MINUSMINUS;
+
+/*Arithmetic Operators */
+terminal PLUS, MINUS, STAR, DIV, PERCENT;
+
+/* Equality Operators */
+terminal LESS, GREATER, LESSEQUAL, GREATEREQUAL, EQUALEQUAL, NOTEQUAL; 
+
+/*Logical Operators */
+terminal AND, OR, EXCLAMATION, ANDAND, OROR;
+
+/*Bitwise Operators */
+terminal CARET, LESSLESS, GREATERGREATER, TILDA;
+
+/*Array-subscript */
+terminal LBRACK, RBRACK;
+
+/*Pointer-dereference operator */ 
+terminal ARROW;
+
+/*Other */
+terminal LPAREN, RPAREN, LBRACE, RBRACE, DOT, COMMA, QUESTION, COLON, SEMICOLON, DOTDOTDOT;
+
+terminal java.lang.Number INTEGER_LITERAL;
+terminal java.lang.Number FLOATING_POINT_LITERAL;
+terminal java.lang.String IDENTIFIER;
+
+non terminal String	Prog, Mult_decl, Var_decl, Body; 
+non terminal String	Decl_type, Decl_list, Decl;
+non terminal String	Deref, Brack_opt;
+non terminal String	Start_function;
+non terminal String	Block_stmt, Stmt_list, Stmt, Expr_stmt, Expr;
+non terminal String	Iteration_stmt, For_arg, Primary_expr;
+non terminal String	Postfix_expr, Assignment_expr, Unary_expr; 
+non terminal String	Add_expr, Mult_expr, Logical_or_expr, Logical_and_expr; 
+non terminal String	Inclusive_or_expr, Exclusive_or_expr;
+non terminal String	And_expr, Equality_expr, Relational_expr, Shift_expr;
+non terminal String 	Return_expr;
+
+precedence left LESS, GREATER, LESSEQUAL, GREATEREQUAL, EQUALEQUAL, NOTEQUAL;
+precedence left ASSGN, STARASSGN, DIVASSGN, PERCENTASSGN, ADDASSGN, MINUSASSGN, LESSASSGN, GREATERASSGN, ANDASSGN, CARETASSGN, ORASSGN;
+precedence left PLUSPLUS, MINUSMINUS;
+precedence left PLUS, MINUS, STAR, DIV, PERCENT;
+precedence left LESS, GREATER, LESSEQUAL, GREATEREQUAL, EQUALEQUAL, NOTEQUAL; 
+precedence left AND, OR, EXCLAMATION, ANDAND, OROR;
+precedence left CARET, LESSLESS, GREATERGREATER, TILDA;
+precedence left LBRACK, RBRACK;
+
+
+/*----End of Terminal and Non-terminal declarations-----*/
+
+/* ----------------------------Grammar Section-------------------- */
+   
+
+   start with Prog; 
+
+   Prog::= Body:b					{: RESULT = b; :}
+	| Mult_decl:d Body:b 				{: RESULT = d.concat(b); :}
+		;
+
+   Mult_decl::= Mult_decl:m Var_decl:v			{: RESULT = m.concat(v);	:}
+		| Var_decl:v				{: RESULT = v;	:}
+		;
+
+   Var_decl::= 	VOID Decl_list:d SEMICOLON		{: 	RESULT = new String("void " + d + "\n;");	:} 
+		| DOUBLE Decl_list:d SEMICOLON		{: 	RESULT = new String("double " + d + ";\n"); :}
+		| FLOAT Decl_list:d SEMICOLON	  	{: 	RESULT = new String("float " + d + ";\n");	:}
+		| LONG Decl_list:d SEMICOLON	 	{:	RESULT = new String("long "+ d + ";\n"); 	:}
+		| INT Decl_list:d SEMICOLON	 	{:	RESULT = new String("int "+ d + ";\n");	:}
+		;
+   
+   Decl_list::= 
+		|Decl_type:d 				{: RESULT = d;	       	        :}
+		|Decl_type:d ASSGN Expr:e		{: RESULT = d.concat(" = "+ e);	:}
+		|Decl_list:dl COMMA Decl_type:d ASSGN Expr:e	{: RESULT = dl.concat(","+d).concat(" = "+ e);	:}
+		|Decl_list:dl COMMA Decl_type:d		{: RESULT = dl.concat(", "+ d); :}
+		;
+
+   Decl_type::= Deref:s Decl:d				{: RESULT = s.concat(d);	:}
+		| Decl:d				{: RESULT = d;			:}
+		;
+
+   Decl::= IDENTIFIER:i					{: RESULT = i.toString();	:}
+	   | IDENTIFIER:i Brack_opt:b			{: RESULT = new String(i.toString() + b); :}    
+	  ;
+
+   Brack_opt::= LBRACK RBRACK				{: RESULT = new String("[]");	:}
+	|   LBRACK Assignment_expr:e RBRACK		{: RESULT = new String("[" + e).concat("]"); :}
+	|   Brack_opt:b LBRACK RBRACK			{: RESULT = b.concat("[]");	:}
+	|   Brack_opt:b LBRACK INTEGER_LITERAL:i RBRACK	{: RESULT = b.concat("[" + parser.ILToString(i)+ "]"); :}
+	; 
+
+   Deref::=STAR:s					{: RESULT = new String("*");	:}
+	| Deref:d STAR:s				{: RESULT = d.concat("*");	:}
+	;
+  
+   Body::= Start_function:sf Block_stmt:b		{: RESULT =    sf.concat("\n" + b); :}
+	;
+
+   Start_function::= VOID IDENTIFIER:i LPAREN RPAREN 	{: RESULT = new String("void" + i.toString() + "()");   :}
+	 	   | DOUBLE IDENTIFIER:i LPAREN RPAREN 	{: RESULT = new String("double"+ i.toString() + "()"); :}
+		   | FLOAT IDENTIFIER:i LPAREN RPAREN 	{: RESULT = new String("float"+ i.toString() + "()");   :}
+		   | LONG IDENTIFIER:i LPAREN RPAREN 	{: RESULT = new String("long"+ i.toString() + "()" );   :}
+		   | INT IDENTIFIER:i LPAREN RPAREN	{: RESULT = new String("int"+ i.toString()+ "()");   :}
+		;
+
+   Block_stmt::= LBRACE Stmt_list:s RBRACE		{: RESULT = new String("{\n" + s).concat("}\n");  :}
+	;
+
+   Stmt_list::= Stmt_list:s Var_decl:d 			{: RESULT = s.concat(d);	:}
+		| Stmt_list:l Stmt:s 			{: RESULT = l.concat(s);	:}
+		| Var_decl:d 				{: RESULT = d; :}
+		| Stmt:s 				{: RESULT = s;  :}
+		;	
+
+   Stmt::= Block_stmt:bs				{: RESULT= bs; :}
+	   | Iteration_stmt:i				{: RESULT = i; :}
+	   | Expr_stmt:e				{: RESULT = e; :}
+	   | Return_expr:r				{: RESULT = r; :}
+	   ;	
+
+   Expr_stmt::= Expr:e SEMICOLON			{: RESULT = e.concat(";\n"); :}
+  		;
+
+   Expr::= Assignment_expr:e				{: RESULT = e; :}
+   		;
+
+   Iteration_stmt::= WHILE LPAREN Assignment_expr:e RPAREN Stmt:s			{: RESULT = new String("while (" + e).concat(")\n" + s);  :}
+	     |   DO Stmt:s WHILE LPAREN Assignment_expr:e RPAREN SEMICOLON 		{: RESULT = new String("do\n" + s + "while (" + e ).concat( ");\n" ); :}
+	     |   FOR LPAREN For_arg:f RPAREN Stmt:s             			{: RESULT = new String("for (" + f + ")" + s);	:}
+	     ;
+
+   For_arg::= Assignment_expr:e1 SEMICOLON Assignment_expr:e2 SEMICOLON Unary_expr:e3	{: RESULT = e1.concat("; "+ e2 +"; " + e3);  :}
+	     | SEMICOLON Assignment_expr:e2 SEMICOLON Unary_expr:e3			{: RESULT = ("; ").concat(e2+ "; ").concat(e3);  :}
+   	     | Assignment_expr:e1 SEMICOLON SEMICOLON Unary_expr:e3			{: RESULT = e1.concat("; "+ " ; ").concat(e3);  :}
+	     | Assignment_expr:e1 SEMICOLON Assignment_expr:e2 SEMICOLON 		{: RESULT = e1.concat("; "+ e2).concat("; ");  :}
+	     | SEMICOLON SEMICOLON Unary_expr:e3					{: RESULT = (";").concat(" ;").concat(e3);  :}
+   	     | SEMICOLON Assignment_expr:e2 SEMICOLON 					{: RESULT = ("; ").concat(" ; "+ e2).concat(" ; ");  :}
+	     | Assignment_expr:e1 SEMICOLON SEMICOLON	 				{: RESULT = e1.concat(" ; "+ " ; ");  :}
+	     | SEMICOLON SEMICOLON SEMICOLON	 					{: RESULT = (" ; ").concat("; ;");  :}
+	     ;
+
+   Assignment_expr::= Logical_or_expr:l							{: RESULT = l; :}
+		| Unary_expr:ue ASSGN Assignment_expr:ae				{: RESULT = ue.concat(" = "+ ae); :}
+		| Unary_expr:ue STARASSGN Assignment_expr:ae				{: RESULT = ue.concat(" *= "+ ae); :}
+		| Unary_expr:ue DIVASSGN Assignment_expr:ae				{: RESULT = ue.concat(" /= "+ ae); :}
+		| Unary_expr:ue PERCENTASSGN Assignment_expr:ae				{: RESULT = ue.concat(" %= " + ae); :}
+		| Unary_expr:ue ADDASSGN Assignment_expr:ae				{: RESULT = ue.concat(" += "+ ae); :}
+		| Unary_expr:ue MINUSASSGN Assignment_expr:ae				{: RESULT = ue.concat(" -= "+ ae); :}
+		| Unary_expr:ue GREATERASSGN Assignment_expr:ae				{: RESULT = ue.concat(" >>= "+ ae); :}
+		| Unary_expr:ue LESSASSGN Assignment_expr:ae				{: RESULT = ue.concat(" <<= "+ ae); :}
+		| Unary_expr:ue ANDASSGN Assignment_expr:ae				{: RESULT = ue.concat(" &= "+ ae); :}	  
+		| Unary_expr:ue CARETASSGN Assignment_expr:ae				{: RESULT = ue.concat(" ^= "+ ae); :}
+		| Unary_expr:ue ORASSGN Assignment_expr:ae				{: RESULT = ue.concat(" |= "+ ae); :}
+		;
+
+   Unary_expr::= Postfix_expr:p 		{: RESULT = p; :}
+		| PLUSPLUS Unary_expr:ue	{: RESULT = new String("++").concat(ue); :}
+		| MINUSMINUS Unary_expr:ue	{: RESULT = new String("--").concat(ue); :}
+		| PLUS Unary_expr:ue		{: RESULT = new String("+").concat(ue); :}
+		| MINUS Unary_expr:ue		{: RESULT = new String("-").concat(ue); :}
+		| TILDA Unary_expr:ue		{: RESULT = new String("~").concat(ue); :}
+		| EXCLAMATION Unary_expr:ue	{: RESULT = new String("!").concat(ue); :}
+		| STAR Unary_expr:ue		{: RESULT = new String("*").concat(ue); :}
+		| AND Unary_expr:ue		{: RESULT = new String("&").concat(ue); :}
+		;
+
+  Postfix_expr::= Primary_expr:pe 			{: RESULT = pe;  :}
+	    	| Postfix_expr:p PLUSPLUS 		{: RESULT = p.concat("++ "); :}
+		| Postfix_expr:p MINUSMINUS		{: RESULT = p.concat("-- "); :}
+		| Postfix_expr:p LBRACK Expr:e RBRACK   {: RESULT = e.concat("[" + e +"]" );  :} /*ERROR CHECK THIS */
+   		;
+
+  Primary_expr::= IDENTIFIER:i 				{: RESULT = i.toString(); :} 
+		| IDENTIFIER:i Brack_opt:b		{: RESULT = new String(i.toString() + b); :}
+		| IDENTIFIER:i PLUSPLUS			{: RESULT = new String(i.toString() + "++"); :} 
+		| IDENTIFIER:i MINUSMINUS		{: RESULT = new String(i.toString() + "--"); :}
+		| Deref:s IDENTIFIER:i 			{: RESULT = s.concat(i.toString()); :} 
+		| Deref:s IDENTIFIER:i Brack_opt:b	{: RESULT = s.concat(i.toString() + b); :}
+		| Deref:s IDENTIFIER:i PLUSPLUS		{: RESULT = s.concat(i.toString() + "++"); :} 
+		| Deref:s IDENTIFIER:i MINUSMINUS	{: RESULT = s.concat(i.toString() + "--"); :}         
+		| FLOATING_POINT_LITERAL:fL 		{: RESULT = parser.FPLToString(fL); :}
+		| INTEGER_LITERAL:i 			{: RESULT = parser.ILToString(i); :}
+		|LPAREN Expr:e RPAREN			{: RESULT = new String("(" + e + ")"); :}
+		;
+
+  Logical_or_expr::= Logical_and_expr:l				{: RESULT = l; :}
+		| Logical_or_expr:lo OROR Logical_and_expr:la	{: RESULT = lo.concat(" || "+ la); :}
+		;
+
+  Logical_and_expr::= Inclusive_or_expr:i			{: RESULT = i; :}
+		| Logical_and_expr:l ANDAND Inclusive_or_expr:i	{: RESULT = l.concat(" && " + i); :}
+		;
+
+  Inclusive_or_expr::= Exclusive_or_expr:eo			 	{: RESULT = eo; :}
+		| Inclusive_or_expr:eo CARET Exclusive_or_expr:ae 	{: RESULT = eo.concat(" || " + ae); :}
+		;
+
+  Exclusive_or_expr::= And_expr:ae				{: RESULT = ae; :}
+		| Exclusive_or_expr:eo CARET And_expr:ae	{: RESULT = eo.concat( "^ " + ae); :}	/*ERROR CHECK*/
+		;
+
+  And_expr::= Equality_expr:ee					{: RESULT = ee; :}
+	      | And_expr:ae AND Equality_expr:ee		{: RESULT = ae.concat(" & " + ee); :}
+	      ;
+
+  Equality_expr::= Relational_expr:re					{: RESULT = re; :}
+	 	| Equality_expr:ee EQUALEQUAL Relational_expr:re	{: RESULT = ee.concat(" == " + re); :}
+		| Equality_expr:ee NOTEQUAL Relational_expr:re		{: RESULT = ee.concat(" != " + re); :}
+		;
+
+  Relational_expr::= Shift_expr:se				{: RESULT = se; :}
+		| Relational_expr:re LESS Shift_expr:se		{: RESULT = re.concat(" < " + se); :}
+		| Relational_expr:re GREATER Shift_expr:se	{: RESULT = re.concat(" > " + se); :}
+		| Relational_expr:re LESSEQUAL Shift_expr:se	{: RESULT = re.concat(" <= " + se); :}
+		| Relational_expr:re GREATEREQUAL Shift_expr:se	{: RESULT = re.concat(" >= " + se); :}
+		;
+
+   Shift_expr::= Add_expr:e				{: RESULT = e; :}
+		| Shift_expr:s LESSLESS Expr:e		{: RESULT = s.concat(" << "+ e); :}
+		| Shift_expr:s GREATERGREATER Expr:e	{: RESULT = s.concat(" >> "+ e); :}
+		;
+
+   
+   Add_expr ::= Add_expr:e PLUS Mult_expr:t	{: RESULT = new String(e.concat(" + " + t)); :}
+      	     |     Add_expr:e MINUS Mult_expr:t	{: RESULT = new String(e.concat(" - " + t)); :}
+             |	   MINUS Mult_expr:t		{: RESULT = new String("-" + t); :}
+	     |	   Mult_expr:m			{: RESULT = m; :}
+	      ;
+
+   Mult_expr::= Mult_expr:t STAR Primary_expr:f	 	{: RESULT = new String(t.concat(" * "+ f)); :}
+            	| Mult_expr:t DIV Primary_expr:f 	{: RESULT = new String(t.concat(" / "+ f)); :}
+            	| Mult_expr:t PERCENT Primary_expr:f    {: RESULT = new String(t.concat(" % "+ f)); :}
+            	| Primary_expr:ue			{: RESULT = ue; :}
+                ;
+
+   Return_expr::= RETURN SEMICOLON 		{: RESULT = new String("return;\n"); :}
+		|  RETURN Expr:e SEMICOLON	{: RESULT = new String("return " + e + ";\n");  :}
+		;
